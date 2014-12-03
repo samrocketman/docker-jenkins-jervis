@@ -1,0 +1,4 @@
+//force yes to all apt-get operations
+//http://superuser.com/questions/164553/automatically-answer-yes-when-using-apt-get-install
+APT::Get::Assume-Yes "true";
+APT::Get::force-yes "true";
