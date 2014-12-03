@@ -15,6 +15,10 @@ RUN /build/sudoers/install.sh
 ADD ubuntu-build/sshd /build/sshd
 RUN /build/sshd/install.sh
 
+#install jvm packages
+ADD ubuntu-build/jvm-packages /build/jvm-packages
+RUN /build/jvm-packages/install.sh
+
 #jenkins user info
 ADD ubuntu-build/jenkins /build/jenkins
 RUN /build/jenkins/install.sh
