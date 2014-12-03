@@ -16,10 +16,25 @@ cd jervis-docker-jvm
 docker build -t jervis-docker-jvm .
 ```
 
-To view the image interactively run:
+To view the image interactively you must connect to the container over SSH.
+First you must get the private key.
 
 ```
-docker run -i -t jervis-docker-jvm /bin/bash
+curl -o insecure_key -fSL https://github.com/phusion/baseimage-docker/raw/master/image/insecure_key
+chmod 600 insecure_key
+```
+
+Then start the container.
+
+```
+docker create jervis-docker-jvm | xargs docker start | xargs docker inspect -f "{{ .NetworkSettings.IPAddress }}"
+```
+
+The value returned from starting the container is the IP address.  Use that IP
+to connect over SSH.
+
+```
+ssh -i insecure_key jenkins@<ip address>
 ```
 
 [centos-baseimage]: https://github.com/pokle/centos-baseimage/blob/master/image/Dockerfile

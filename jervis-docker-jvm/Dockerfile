@@ -1,34 +1,32 @@
-FROM ubuntu:14.04
+FROM phusion/baseimage
 MAINTAINER Sam Gleske <sam.mxracer@gmail.com>
 
-RUN mkdir /build
+#phusion baseimage recommendations
+ENV HOME /root
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
+# Standard SSH port
+EXPOSE 22
+#default command
+CMD ["/sbin/my_init"]
 
-#apt should always use -y
-ADD ubuntu-build/apt /build/apt
+#Jervis Jenkins agent
+RUN mkdir /build
+ADD ubuntu-build /build
+
+#apt should always use -y --no-install-recommends
 RUN /build/apt/install.sh
 
 #sudo with no password
-ADD ubuntu-build/sudoers /build/sudoers
 RUN /build/sudoers/install.sh
 
 #install the SSH server
-ADD ubuntu-build/sshd /build/sshd
 RUN /build/sshd/install.sh
 
 #install jvm packages
-ADD ubuntu-build/jvm-packages /build/jvm-packages
-RUN /build/jvm-packages/install.sh
+#RUN /build/jvm-packages/install.sh
 
 #jenkins user info
-ADD ubuntu-build/jenkins /build/jenkins
 RUN /build/jenkins/install.sh
 
 #some final clean up
-RUN rm -rf /build
-RUN apt-get clean
-
-# Standard SSH port
-EXPOSE 22
-
-#default command
-CMD ["/usr/sbin/sshd", "-D"]
+RUN /build/clean.sh
