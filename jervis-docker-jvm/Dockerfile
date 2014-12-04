@@ -23,7 +23,7 @@ RUN /build/sudoers/install.sh
 RUN /build/sshd/install.sh
 
 #install jvm packages
-#RUN /build/jvm-packages/install.sh
+RUN /build/jvm-packages/install.sh
 
 #jenkins user info
 RUN /build/jenkins/install.sh
