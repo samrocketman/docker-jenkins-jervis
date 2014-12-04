@@ -4,10 +4,10 @@ These are the docker build files to create [Jervis][jervis] docker clients as
 Jenkins build slaves.
 
 Docker files were written with a combination of
-[evarga/jenkins-slave][jenkins-slave] and
-[pokle/centos-baseimage][centos-baseimage].
+[evarga/jenkins-slave][jenkins-slave],
+[pokle/centos-baseimage][centos-baseimage], and [phusion/baseimage][phusion].
 
-# jervis-docker-jvm
+# Ubuntu jervis-docker-jvm
 
 To build the `jervis-docker-jvm` image execute the following commands.
 
@@ -40,3 +40,4 @@ ssh -i insecure_key jenkins@<ip address>
 [centos-baseimage]: https://github.com/pokle/centos-baseimage/blob/master/image/Dockerfile
 [jenkins-slave]: https://github.com/evarga/docker-images/blob/master/jenkins-slave/Dockerfile
 [jervis]: https://github.com/samrocketman/jervis
+[phusion]: https://github.com/phusion/baseimage-docker
