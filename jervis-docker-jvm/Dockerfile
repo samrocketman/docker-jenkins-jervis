@@ -22,11 +22,14 @@ RUN /build/sudoers/install.sh
 #install the SSH server
 RUN /build/sshd/install.sh
 
+#jenkins user info
+RUN /build/jenkins/install.sh
+
 #install jvm packages
 RUN /build/jvm-packages/install.sh
 
-#jenkins user info
-RUN /build/jenkins/install.sh
+#install rvm packages
+RUN /build/rvm-packages/install.sh
 
 #some final clean up
 RUN /build/clean.sh
