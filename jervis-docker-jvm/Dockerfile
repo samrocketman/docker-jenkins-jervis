@@ -13,6 +13,9 @@ CMD ["/sbin/my_init"]
 RUN mkdir /build
 ADD ubuntu-build /build
 
+#Remove unnecessary daemons for Jenkins one-time build agents
+RUN /build/setup.sh
+
 #apt should always use -y --no-install-recommends
 RUN /build/apt/install.sh
 
