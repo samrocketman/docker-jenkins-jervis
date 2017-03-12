@@ -31,6 +31,7 @@ fail() { log "\nERROR: $*\n" ; exit 1 ; }
 rvm_install_commands_setup()
 {
   \which which >/dev/null 2>&1 || fail "Could not find 'which' command, make sure it's available first before continuing installation."
+  \which grep >/dev/null 2>&1 || fail "Could not find 'grep' command, make sure it's available first before continuing installation."
   if
     [[ -z "${rvm_tar_command:-}" ]] && builtin command -v gtar >/dev/null
   then
@@ -62,13 +63,13 @@ rvm_install_commands_setup()
               then sudo_10=sudo
               elif \which /opt/csw/bin/sudo >/dev/null 2>&1
               then sudo_10=/opt/csw/bin/sudo
-              else fail "sudo is required but not found. You may install sudo from OpenCSW repository (http://opencsw.org/about)"
+              else fail "sudo is required but not found. You may install sudo from OpenCSW repository (https://www.opencsw.org/about)"
               fi
-              pkginfo -q CSWpkgutil || $sudo_10 pkgadd -a $rvm_path/config/solaris/noask -d http://get.opencsw.org/now CSWpkgutil
-              sudo /opt/csw/bin/pkgutil -iy CSWgtar -t http://mirror.opencsw.org/opencsw/unstable
+              pkginfo -q CSWpkgutil || $sudo_10 pkgadd -a $rvm_path/config/solaris/noask -d https://get.opencsw.org/now CSWpkgutil
+              sudo /opt/csw/bin/pkgutil -iy CSWgtar -t https://mirror.opencsw.org/opencsw/unstable
             else
-              pkginfo -q CSWpkgutil || pkgadd -a $rvm_path/config/solaris/noask -d http://get.opencsw.org/now CSWpkgutil
-              /opt/csw/bin/pkgutil -iy CSWgtar -t http://mirror.opencsw.org/opencsw/unstable
+              pkginfo -q CSWpkgutil || pkgadd -a $rvm_path/config/solaris/noask -d https://get.opencsw.org/now CSWpkgutil
+              /opt/csw/bin/pkgutil -iy CSWgtar -t https://mirror.opencsw.org/opencsw/unstable
             fi
             rvm_tar_command=/opt/csw/bin/gtar
             ;;
@@ -344,7 +345,7 @@ get_package()
   _url="$1"
   _file="$2"
   log "Downloading ${_url}"
-  __rvm_curl -sS ${_url} -o ${rvm_archives_path}/${_file} ||
+  __rvm_curl -sS ${_url} > ${rvm_archives_path}/${_file} ||
   {
     _return=$?
     case $_return in
@@ -389,10 +390,10 @@ rvm_install_gpg_setup()
   {
     rvm_gpg_command="$( \which gpg2 2>/dev/null )" &&
     [[ ${rvm_gpg_command} != "/cygdrive/"* ]]
-  } ||
-    rvm_gpg_command="$( \which gpg 2>/dev/null )" ||
-    rvm_gpg_command=""
+  } || rvm_gpg_command=""
+
   debug "Detected GPG program: '$rvm_gpg_command'"
+
   [[ -n "$rvm_gpg_command" ]] || return $?
 }
 
@@ -406,13 +407,10 @@ verify_package_pgp()
   else
     typeset _ret=$?
     log "\
-Warning, RVM 1.26.0 introduces signed releases and \
-automated check of signatures when GPG software found.
-Assuming you trust Michal Papis import the mpapis public \
-key (downloading the signatures).
+Warning, RVM 1.26.0 introduces signed releases and automated check of signatures when GPG software found. \
+Assuming you trust Michal Papis import the mpapis public key (downloading the signatures).
 
-GPG signature verification failed for '$1' - '$3'!
-try downloading the signatures:
+GPG signature verification failed for '$1' - '$3'! Try to install GPG v2 and then fetch the public key:
 
     ${SUDO_USER:+sudo }${rvm_gpg_command##*/} --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 
@@ -424,6 +422,9 @@ the key can be compared with:
 
     https://rvm.io/mpapis.asc
     https://keybase.io/mpapis
+
+NOTE: GPG version 2.1.17 have a bug which cause failures during fetching keys from remote server. Please downgrade \
+or upgrade to newer version (if available) or use the second method described above.
 "
     exit $_ret
   fi
@@ -750,7 +751,7 @@ rvm_install_validate_rvm_path()
   case "$rvm_path" in
     (*[[:space:]]*)
       printf "%b" "
-It looks you are one of the happy *space* users(in home dir name),
+It looks you are one of the happy *space* users (in home dir name),
 RVM is not yet fully ready for it, use this trick to fix it:
 
     sudo mkdir -p /${USER// /_}.rvm
@@ -768,7 +769,7 @@ It looks you are one of the happy Ubuntu users,
 RVM packaged by Ubuntu is old and broken,
 follow this link for details how to fix:
 
-  http://stackoverflow.com/a/9056395/497756
+  https://stackoverflow.com/a/9056395/497756
 
 "
       [[ "${rvm_uses_broken_ubuntu_path:-no}" == "yes" ]] || exit 3
@@ -778,6 +779,42 @@ follow this link for details how to fix:
   if [[ "$rvm_path" != "/"* ]]
   then fail "The rvm install path must be fully qualified. Tried $rvm_path"
   fi
+}
+
+rvm_install_validate_volume_mount_mode()
+{
+  \typeset path partition test_exec
+
+  path=$rvm_path
+
+  # Directory $rvm_path might not exists at this point so we need to traverse the tree upwards
+  while [[ -n "$path" ]]
+  do
+      if [[ -d $path ]]
+      then
+        partition=`df -P $path | awk 'END{print $1}'`
+
+        test_exec=$(mktemp $path/rvm-exec-test.XXXXXX)
+        echo '#!/bin/sh' > "$test_exec"
+        chmod +x "$test_exec"
+
+        if ! "$test_exec"
+        then
+          rm -f "$test_exec"
+          printf "%b" "
+It looks that scripts located in ${path}, which would be RVM destination ${rvm_path},
+are not executable. One of the reasons might be that partition ${partition} holding this location
+is mounted in *noexec* mode, which prevents RVM from working correctly. Please verify your setup 
+and re-mount partition ${partition} without the noexec option."
+          exit 2
+        fi
+
+        rm -f "$test_exec"
+        break
+      fi
+
+      path=${path%/*}
+  done
 }
 
 rvm_install_select_and_get_version()
@@ -878,6 +915,7 @@ rvm_install()
   rvm_install_default_settings
   rvm_install_parse_params "$@"
   rvm_install_validate_rvm_path
+  rvm_install_validate_volume_mount_mode
   rvm_install_select_and_get_version
   rvm_install_main
   rvm_install_ruby_and_gems
