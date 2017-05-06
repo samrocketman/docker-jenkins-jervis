@@ -1,20 +1,10 @@
-FROM phusion/baseimage
+FROM ubuntu:16.04
 MAINTAINER Sam Gleske <sam.mxracer@gmail.com>
 
-#phusion baseimage recommendations
-ENV HOME /root
-RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
-# Standard SSH port
-EXPOSE 22
-#default command
-CMD ["/sbin/my_init"]
 
 #Jervis Jenkins agent
 RUN mkdir /build
 ADD ubuntu-build /build
-
-#Remove unnecessary daemons for Jenkins one-time build agents
-RUN /build/setup.sh
 
 #apt should always use -y --no-install-recommends
 RUN /build/apt/install.sh
@@ -22,17 +12,22 @@ RUN /build/apt/install.sh
 #sudo with no password
 RUN /build/sudoers/install.sh
 
-#install the SSH server
-RUN /build/sshd/install.sh
-
 #jenkins user info
 RUN /build/jenkins/install.sh
 
-#install jvm packages
+#set up Java language support
 RUN /build/jvm-packages/install.sh
 
-#install rvm packages
+#set up Ruby language support
 RUN /build/rvm-packages/install.sh
 
-#some final clean up
-RUN /build/clean.sh
+#set up Go support
+RUN curl -sL -o /usr/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme && chmod 755 /usr/bin/gimme
+
+#FINAL IMAGE PREPARATION
+
+#install a container init process
+RUN curl -Lo /bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 && chmod 755 /bin/dumb-init
+ENTRYPOINT ["/bin/dumb-init", "--"]
+USER 'jenkins'
+WORKDIR /home/jenkins
