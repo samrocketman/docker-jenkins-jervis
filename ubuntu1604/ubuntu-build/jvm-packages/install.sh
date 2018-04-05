@@ -17,7 +17,7 @@ yes | sdk install gradle 3.5
 
 #install the versions of Java used by Jervis
 mkdir ~jenkins/java
-java=8u161-oracle
+java=8.0.161-oracle
 yes | sdk install java "${java}"
 ln -s "${HOME}/.sdkman/candidates/java/${java}" "${HOME}/java/openjdk${java:0:1}"
 yes | sdk default java "${java}"
