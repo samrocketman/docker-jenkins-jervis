@@ -1,0 +1,9 @@
+//http://superuser.com/questions/164553/automatically-answer-yes-when-using-apt-get-install
+//force yes to all apt-get operations
+APT::Get::Assume-Yes "true";
+APT::Get::force-yes "true";
+
+//http://linux.koolsolutions.com/2009/01/07/howto-tell-apt-get-not-to-install-recommends-packages-in-debian-linux/
+// Recommends are as of now still abused in many packages
+APT::Install-Recommends "0";
+APT::Install-Suggests "0";
