@@ -16,6 +16,7 @@ if [ -z "${1:-}" ]; then
     docker build -t jervis-"$x" "$x"
   done
 else
-  x="${1%/}"
-  docker build -t jervis-"$x" "$x"
+  for x in "$@"; do
+    docker build -t jervis-"${x%/}" "$x"
+  done
 fi
