@@ -38,7 +38,7 @@ ENV LANG=en_US.UTF-8 \
 LC_ALL=en_US.UTF-8
 
 # Install Oracle JDK 8 with Unlimited JCE
-RUN \
+RUN set -ex; \
 JAVA8_ARCHIVE="http://download.oracle.com/otn-pub/java/jdk/8u181-b13/96a7b8442fe848ef90c96a2fad6ed6d1/jdk-8u181-linux-x64.tar.gz"; \
 JAVA8_SHASUM="1845567095bfbfebd42ed0d09397939796d05456290fb20a83c476ba09f991d3"; \
 JAVA8_JCE="http://download.oracle.com/otn-pub/java/jce/8/jce_policy-8.zip"; \
@@ -54,17 +54,26 @@ curl -H 'Cookie: oraclelicense=accept-securebackup-cookie' -LO  "${JAVA8_JCE}" &
 sha256sum -c <<< "${JAVA8_JCE_SHASUM}  jce_policy-8.zip" && \
 unzip -o jce_policy-8.zip && \
 mv -f ./UnlimitedJCEPolicyJDK8/* /opt/oraclejdk8/jre/lib/security/ && \
-rm -rf jce_policy-8.zip UnlimitedJCEPolicyJDK8 && \
+rm -rf jce_policy-8.zip UnlimitedJCEPolicyJDK8
+
+# Install OpenJDK 8
+RUN set -ex; \
+yum makecache fast && \
+yum install java-1.8.0-openjdk-devel && \
 yum clean all && \
 rm -rf /tmp/*
 
-RUN yum makecache fast && \
+
+RUN set -ex; \
+yum makecache fast && \
 yum install -y python2-pip && \
+pip install -U pip && pip install virtualenv && \
 yum clean all && \
-pip install -U pip && pip install virtualenv
+rm -rf /tmp/*
 
 # Don't require TTY, allow passwordless sudo
-RUN sed -ri -- 's/Defaults(\s+)requiretty/#Defaults\1requiretty/' /etc/sudoers && \
+RUN set -ex; \
+sed -ri -- 's/Defaults(\s+)requiretty/#Defaults\1requiretty/' /etc/sudoers && \
 sed -ri -- 's/#\s+(%wheel.+NOPASSWD: ALL)/\1/' /etc/sudoers
 
 # Fix for D-Bus issue
@@ -73,18 +82,22 @@ sed -ri -- 's/#\s+(%wheel.+NOPASSWD: ALL)/\1/' /etc/sudoers
 RUN dbus-uuidgen --ensure
 
 # Create jenkins user
-RUN useradd -m -s /bin/bash -G wheel -d /home/jenkins jenkins && \
+RUN set -ex; \
+useradd -m -s /bin/bash -G wheel -d /home/jenkins jenkins && \
 chown -R jenkins. /usr/local
 
 # Install container init process
-RUN curl -Lo /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 && \
+RUN set -ex; \
+curl -Lo /usr/local/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 && \
 echo '81231da1cd074fdc81af62789fead8641ef3f24b6b07366a1c34e5b059faf363  /usr/local/bin/dumb-init' | sha256sum -c - && \
 chmod 755 /usr/local/bin/dumb-init
 
 # Install Apache Maven 3.5.0
 WORKDIR /opt
 ADD maven.sh /etc/profile.d/
-RUN chown root. /etc/profile.d/maven.sh && \
+
+RUN set -ex; \
+chown root. /etc/profile.d/maven.sh && \
 chmod 644 /etc/profile.d/maven.sh && \
 curl -LO https://www.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && \
 echo 'ce50b1c91364cb77efe3776f756a6d92b76d9038b0a0782f7d53acf1e997a14d  /opt/apache-maven-3.5.4-bin.tar.gz' | sha256sum -c - && \
@@ -94,7 +107,11 @@ rm -f apache-maven-3.5.4-bin.tar.gz
 
 ADD init.gradle /home/jenkins/.gradle/
 
-RUN chown -R jenkins. /home/jenkins/.gradle/
+RUN set -ex; \
+mkdir -p /home/jenkins/java && \
+ln -s /opt/oraclejdk8 /home/jenkins/java/oraclejdk8 && \
+ln -s /usr/lib/jvm/java-1.8.0-openjdk /home/jenkins/java/openjdk8 && \
+chown -R jenkins. /home/jenkins/.gradle/ /home/jenkins/java/
 
 USER jenkins
 WORKDIR /home/jenkins
