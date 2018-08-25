@@ -6,7 +6,9 @@ IMAGE_ORDER=(
   alpine
   centos7
   centos7-android
+  centos7-dnd
   ubuntu1604
+  ubuntu1804
 )
 
 set -ex
