@@ -24,6 +24,7 @@ ADD android.sh /etc/profile.d/
 USER jenkins
 WORKDIR /home/jenkins
 ENV JAVA_HOME /opt/oraclejdk8
+
 RUN /bin/bash -exlc '\
 mkdir ~/.android; \
 touch ~/.android/repositories.cfg; \
