@@ -24,13 +24,9 @@ rm -rf /tmp/*
 # Install packages, upgrade git because it's too old for Jenkins, and fix locale
 RUN set -ex; \
 yum makecache fast && \
-yum groupinstall "Development Tools" && \
-yum install bind-utils bzip2 ca-certificates curl-devel deltarpm libxml-devel \
-libxml2-devel libxslt-devel mariadb mariadb-devel mariadb-server nmap-ncat \
-openssl openssl-devel psmisc python-devel python2-pip rsyslog sudo wget \
-which && \
 yum erase -y git && \
-yum install git2u intltool && \
+yum install git2u intltool glibc-common unzip sudo nmap-ncat bind-utils && \
+# reinstall glibc-common as a language hack
 yum reinstall glibc-common && \
 localedef -i en_US -f UTF-8 en_US.UTF-8 && \
 tee /etc/sysconfig/i18n <<<'"LANG=en_US.UTF-8"' && \
@@ -62,7 +58,10 @@ rm -rf jce_policy-8.zip UnlimitedJCEPolicyJDK8 && \
 yum clean all && \
 rm -rf /tmp/*
 
-RUN pip install -U pip && pip install virtualenv
+RUN yum makecache fast && \
+yum install -y python2-pip && \
+yum clean all && \
+pip install -U pip && pip install virtualenv
 
 # Don't require TTY, allow passwordless sudo
 RUN sed -ri -- 's/Defaults(\s+)requiretty/#Defaults\1requiretty/' /etc/sudoers && \
@@ -87,7 +86,7 @@ WORKDIR /opt
 ADD maven.sh /etc/profile.d/
 RUN chown root. /etc/profile.d/maven.sh && \
 chmod 644 /etc/profile.d/maven.sh && \
-wget https://www.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && \
+curl -LO https://www.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && \
 echo 'ce50b1c91364cb77efe3776f756a6d92b76d9038b0a0782f7d53acf1e997a14d  /opt/apache-maven-3.5.4-bin.tar.gz' | sha256sum -c - && \
 tar xzvf apache-maven-3.5.4-bin.tar.gz && \
 chown -R jenkins. apache-maven-3.5.4/ && \
