@@ -6,7 +6,8 @@ WORKDIR /opt
 
 RUN yum makecache fast && \
 yum install -y mesa-libGL && \
-yum clean all
+yum clean all && \
+rm -rf /tmp/*
 
 RUN set -ex; \
 SDK_TOOLS_URL="https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip"; \
