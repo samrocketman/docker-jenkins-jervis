@@ -24,6 +24,14 @@ ADD android.sh /etc/profile.d/
 USER jenkins
 WORKDIR /home/jenkins
 ENV JAVA_HOME /opt/oraclejdk8
+RUN /bin/bash -exlc '\
+mkdir ~/.android; \
+touch ~/.android/repositories.cfg; \
+yes | sdkmanager --licenses; \
+yes | sdkmanager platform-tools emulator; \
+yes | sdkmanager --update'
+
+CMD /bin/bash
 
 # Sample usage
 #     yes | sdkmanager platform-tools emulator 'platforms;android-22' 'system-images;android-22;default;armeabi-v7a'
