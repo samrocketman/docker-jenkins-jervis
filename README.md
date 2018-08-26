@@ -95,6 +95,6 @@ Things to note:
   create and mount a volume with a different name.  Accessing `/var/lib/docker`
   with multiple docker daemons will cause data corruption.
 
-[docker-capabilies]: https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities
+[docker-capabilities]: https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities
 [docker-security]: https://docs.docker.com/engine/security/security/
 [jervis]: https://github.com/samrocketman/jervis
