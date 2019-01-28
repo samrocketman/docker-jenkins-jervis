@@ -44,7 +44,6 @@ su - jenkins -c -- bash -c 'rvm get stable'
 
 #install nvm
 RUN curl-o-https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
-source ~/.profile
 
 # set up Go support
 RUN curl -sL -o /usr/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme && chmod 755 /usr/bin/gimme
