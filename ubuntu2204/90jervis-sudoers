@@ -1,0 +1,2 @@
+#No password for being in the sudo group
+%sudo ALL=NOPASSWD: ALL

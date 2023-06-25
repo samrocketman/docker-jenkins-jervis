@@ -1,0 +1,150 @@
+#versions:
+#  crane: latest
+#  dumb-init: latest
+#  gh: latest
+#  gitleaks: latest
+#  goss: latest
+#  jq: latest
+#  kind: latest
+#  kubeconform: latest
+#  kubectl: latest
+#  kubeval: latest
+#  kustomize: latest
+#  minikube: latest
+#  yq: latest
+
+
+defaults: &defaults
+  # dest could be /usr/local/bin in Docker builds
+  dest: /usr/local/bin
+  perm: '0755'
+  os:
+    Linux: linux
+    Darwin: darwin
+  arch:
+    x86_64: amd64
+    aarch64: arm64
+  pre_command: |
+    if [ "${checksum_failed:-true}" = true ]; then
+      rm -f ${dest}/${utility}
+    fi
+  # Universal update; see gimme utility where update is overridden
+  update: |
+    case "${download}" in
+      https://github.com/*)
+        owner="$(awk -F/ '{print $4"/"$5}' <<< "${download}")"
+        export download=https://github.com/"${owner}"/releases/latest
+        eval "${default_download_head}" |
+        awk '$1 ~ /[Ll]ocation:/ { gsub(".*/[^0-9.]*", "", $0); print;exit}'
+        ;;
+      https://dl.k8s.io/release*)
+        download=https://dl.k8s.io/release/stable.txt
+        extract=cat
+        export download extract
+        eval "${default_download_extract}" |
+        awk '{gsub("v", "", $0); print}'
+        ;;
+      https://get.helm.sh/*)
+        export download=https://github.com/helm/helm/releases/latest
+        eval "${default_download_head}" |
+        awk '$1 ~ /[Ll]ocation:/ { gsub(".*/[^0-9.]*", "", $0); print;exit}'
+        ;;
+      https://repo1.maven.org/*)
+        # get update for maven-3
+        download=https://repo1.maven.org/maven2/org/apache/maven/apache-maven/maven-metadata.xml
+        # cat will read from stdin and print to stdout
+        extract=cat
+        export download extract
+        # Do more advanced extraction outside of the eval via bash piped commands
+        eval "${default_download_extract}" |
+        yq -p=xml '.metadata.versioning.versions[] | join("\n")' | grep -v -- - | sort -Vr | head -n1
+        ;;
+    esac
+
+
+utility:
+  crane:
+    <<: *defaults
+    # Darwin and Linux
+    os:
+    # x86_64 and arm64
+    arch:
+      aarch64: arm64
+    download: https://github.com/google/go-containerregistry/releases/download/v${version}/go-containerregistry_${os}_${arch}.tar.gz
+    extract: tar -xzC ${dest}/ --no-same-owner ${utility}
+  dumb-init:
+    <<: *defaults
+    # force default architecture x86_64 and aarch64
+    arch:
+    only: "[ ${os} = linux ]"
+    download: https://github.com/Yelp/dumb-init/releases/download/v${version}/dumb-init_${version}_${arch}
+  gh:
+    <<: *defaults
+    os:
+      Linux: linux
+      Darwin: macOS
+    extension:
+      default: tar.gz
+      macOS: zip
+    default_download_extract: |
+      trap '[ ! -f /tmp/file.zip ] || rm -f /tmp/file.zip' EXIT
+      if type -P curl; then
+        curl -sSfL ${download} | ${extract}
+      else
+        wget -q -O - ${download} | ${extract}
+      fi
+    extract:
+      macOS: |
+        {
+          cat > /tmp/file.zip
+          unzip -o -j -d ${dest} /tmp/file.zip '*/bin/gh'
+        }
+      linux: tar -xzC ${dest}/ --no-same-owner --strip-components=2 gh_${version}_${os}_${arch}/bin/gh
+    download: https://github.com/cli/cli/releases/download/v${version}/gh_${version}_${os}_${arch}.${extension}
+  gitleaks:
+    <<: *defaults
+    arch:
+      x86_64: x64
+      aarch64: arm64
+    download: https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_${os}_${arch}.tar.gz
+    extract: tar -xzC ${dest}/ --no-same-owner ${utility}
+  goss:
+    <<: *defaults
+    os:
+      Linux: linux
+      Darwin: alpha-darwin
+    # Mac OS is alpha and Mac only supports AMD64.  Linux supports arm and AMD64
+    only: "[ ! ${os} = alpha-darwin ] || [ ${arch} = amd64 ]"
+    download: https://github.com/goss-org/goss/releases/download/v${version}/goss-${os}-${arch}
+  jq:
+    <<: *defaults
+    only: "[ ${arch} = amd64 ]"
+    os:
+      Linux: linux64
+      Darwin: osx-amd64
+    download: https://github.com/jqlang/jq/releases/download/jq-${version}/jq-${os}
+  kind:
+    <<: *defaults
+    download: https://github.com/kubernetes-sigs/kind/releases/download/v0.19.0/kind-${os}-${arch}
+  kubeconform:
+    <<: *defaults
+    download: https://github.com/yannh/kubeconform/releases/download/v${version}/kubeconform-${os}-${arch}.tar.gz
+    extract: tar -xzC ${dest}/ --no-same-owner ${utility}
+  kubectl:
+    <<: *defaults
+    download: https://dl.k8s.io/release/v${version}/bin/${os}/${arch}/kubectl
+  kubeval:
+    <<: *defaults
+    only: "[ ${arch} = amd64 ]"
+    extract: tar -xzC ${dest}/ --no-same-owner ${utility}
+    download: https://github.com/instrumenta/kubeval/releases/download/v${version}/kubeval-${os}-${arch}.tar.gz
+  kustomize:
+    <<: *defaults
+    download: https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_${os}_${arch}.tar.gz
+    extract: tar -xzC ${dest}/ --no-same-owner ${utility}
+  minikube:
+    <<: *defaults
+    download: https://github.com/kubernetes/minikube/releases/download/v${version}/minikube-${os}-${arch}
+  yq:
+    <<: *defaults
+    download: https://github.com/mikefarah/yq/releases/download/v${version}/yq_${os}_${arch}
