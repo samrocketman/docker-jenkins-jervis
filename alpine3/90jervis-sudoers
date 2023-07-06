@@ -1,0 +1,3 @@
+#No password for being in the wheel group
+%wheel ALL=NOPASSWD: ALL
+
